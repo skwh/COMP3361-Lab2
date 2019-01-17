@@ -1,0 +1,49 @@
+* Set memory size to 2MB
+200000 memsize
+
+* Check that memory is initialized to 0
+000000  print 10
+100000  cmp 000000 1000
+1ff000  cmp 000000 1000
+
+* Preset all memory
+000000  fill bc 200000
+
+* Check that memory is initialized to bc
+000000  print 10
+100000  cmp 000000 1000
+1ff000  cmp 000000 1000
+
+* Test fill, duplicate, and cmp
+1a7a00  fill d  80
+1a7a80  fill e  70
+000100  set  d d d d d e e e e e
+1a7a78  print 10
+1a7a7b  cmp  000100 a
+
+1a7a7e  fill c  4
+000200  set  d d d c c c c e e e  
+1a7a78  print 10
+1a7a7b  cmp  000200 a
+
+1a7a7e  set  1 2 3 4 
+000300  set  d d d 1 2 3 4 e e e  
+1a7a78  print 10
+1a7a7b  cmp  000300 a
+
+1a7ae8  set  a8 a9 aa ab ac ad ae af  
+000400  set  e e a8 a9 aa ab ac ad ae af   
+1a7ae6  print 10
+1a7ae6  cmp  000400 10
+
+1a7ae6  dup  1a7ff8 8
+1a7ae6  cmp  1a7ff8 8
+1a7ff8  print 8
+
+* Test that cmp reports differences; next cmp should find 4 differing bytes
+000f00  set  a e a8 a0 aa ab af ad ae ac
+0003ff  print 10
+000eff  print 10
+0003ff  cmp  000eff 10
+
+* End of trace2.txt

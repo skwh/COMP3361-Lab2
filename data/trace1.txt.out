@@ -1,0 +1,36 @@
+1:* Set memory size to 32K
+2:8000 memsize
+3:  
+4:* Set some bytes and then check values
+5:ae0   set   c0 c1 c2 c3 c4
+6:ae2   set   d2
+7:ad0   print 20
+0000ad0: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0000ae0: c0 c1 d2 c3 c4 00 00 00 00 00 00 00 00 00 00 00
+8:7aa0  set   c0 c1 d2 c3 c4
+9:7a90  print 20
+0007a90: 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+0007aa0: c0 c1 d2 c3 c4 00 00 00 00 00 00 00 00 00 00 00
+10:ae0   cmp   7aa0 5
+11:
+12:* Try storing at both ends of memory
+13:7ffe  set   aa  bb  
+14:0     set   aa  bb
+15:7ffe  cmp   0   2
+16:
+17:* Test fill
+18:3f0b  fill  ab  b
+19:3f0a  print d
+0003f0a: 00 ab ab ab ab ab ab ab ab ab ab ab 00
+20:90    set   ab ab ab ab ab ab ab ab ab ab ab
+21:8f    print d
+000008f: 00 ab ab ab ab ab ab ab ab ab ab ab 00
+22:8f    cmp   3f0a  d
+23:
+24:* Test duplicate
+25:f00   set   f1 f2 f3 f4 f5
+26:f00   dup   91 5
+27:8f    print 10
+000008f: 00 ab f1 f2 f3 f4 f5 ab ab ab ab ab 00 00 00 00
+28:
+29:* End of trace1.txt

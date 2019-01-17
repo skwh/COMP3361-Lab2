@@ -23,19 +23,29 @@
 class Process {
 public:
     Process(std::string fileName);
-    Process(const Process& orig);
+    
+    Process(const Process & orig) = delete;
+    Process(Process && orig) = delete;
+    Process operator=(const Process & orig) = delete;
+    Process operator=(Process && orig) = delete;
+    
     virtual ~Process();
     
     void Exec();
 private:
+    
     enum Command {
         MEMSIZE, CMP, SET, FILL, DUP, PRINT, COMMENT
     };
+    
+    std::string handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
     
     std::string fileName;
     std::vector<uint8_t> memory;
     std::ifstream fileStream;
     std::istringstream currentLineStream;
+    bool fileOpen;
+    int lineCount;
     
     Command currentCommand;
     uint32_t currentAddress;
