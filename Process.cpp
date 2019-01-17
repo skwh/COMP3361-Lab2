@@ -27,6 +27,7 @@ Process::Process(std::string fileName) {
 }
 
 Process::~Process() {
+    this->fileOpen = false;
 }
 
 void Process::Exec() {
@@ -80,10 +81,31 @@ void Process::Exec() {
     }
 }
 
+int Process::convertAddress(std::string arg)
+{
+    return ((std::dec(std::stoi(arg)))/2);
+}
+
 std::string Process::handleCommand(Process::Command cmd, 
                                     uint32_t address, 
                                     std::vector<std::string> & arguments) {
     switch (cmd) {
+        case Process::Command::MEMSIZE:
+            int convertedSize = convertAddress(arguments.front());
+            arguments.erase(0);
+            if (convertedSize > 4000000)
+            {
+                convertedSize = 4000000;
+            }
+            this->memory = std::vector<uint8_t>(convertedSize-1);
+            break;
+        case Process::Command::CMP:
+            int addr1 = convertAddress(arguments.front());
+            arguments.erase(0);
+            int addr2 = convertAddress(arguments.front());
+            arguments.erase(0);
+            
+            //INCOMPLETE LOOKS LIKE BIT MANIPULATION, AND FUCK THAT FOR RIGHT NOW
         case Process::Command::PRINT:
             return "HEY GUYS I AM PRINTING SOMETHING JUST LIKE I WAS TOLD";
         default:
