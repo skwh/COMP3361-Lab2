@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <fstream>
+#include <sstream>
 
 class Process {
 public:
@@ -26,8 +28,18 @@ public:
     
     void Exec();
 private:
+    enum Command {
+        MEMSIZE, CMP, SET, FILL, DUP, PRINT, COMMENT
+    };
+    
     std::string fileName;
     std::vector<uint8_t> memory;
+    std::ifstream fileStream;
+    std::istringstream currentLineStream;
+    
+    Command currentCommand;
+    uint32_t currentAddress;
+    
 
 };
 
