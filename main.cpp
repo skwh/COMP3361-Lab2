@@ -30,6 +30,6 @@ int main(int argc, char** argv) {
     
     p.Exec();
     
-    return 1;
+    return 0;
 }
 
