@@ -36,8 +36,9 @@ void Process::Exec() {
         this->lineCount += 1;
         this->currentLineStream = std::istringstream(line);
         
-        uint32_t address;
-        this->currentLineStream >> std::hex >> address;
+        std::string inputAddress;
+        this->currentLineStream >> inputAddress;
+        uint32_t address = this->convertAddress(inputAddress);
         this->currentAddress = address;
         
         std::string command;
@@ -81,8 +82,7 @@ void Process::Exec() {
     }
 }
 
-int Process::convertAddress(std::string arg)
-{
+uint32_t Process::convertAddress(std::string arg) {
     return ((std::dec(std::stoi(arg)))/2);
 }
 
@@ -91,21 +91,22 @@ std::string Process::handleCommand(Process::Command cmd,
                                     std::vector<std::string> & arguments) {
     switch (cmd) {
         case Process::Command::MEMSIZE:
-            int convertedSize = convertAddress(arguments.front());
+            uint32_t convertedSize = convertAddress(arguments.front());
             arguments.erase(0);
-            if (convertedSize > 4000000)
-            {
+            if (convertedSize > 4000000) {
                 convertedSize = 4000000;
             }
             this->memory = std::vector<uint8_t>(convertedSize-1);
             break;
         case Process::Command::CMP:
-            int addr1 = convertAddress(arguments.front());
+            uint32_t addr1 = convertAddress(arguments.front());
             arguments.erase(0);
-            int addr2 = convertAddress(arguments.front());
+            uint32_t addr2 = convertAddress(arguments.front());
             arguments.erase(0);
             
             //INCOMPLETE LOOKS LIKE BIT MANIPULATION, AND FUCK THAT FOR RIGHT NOW
+            
+            break;
         case Process::Command::PRINT:
             return "HEY GUYS I AM PRINTING SOMETHING JUST LIKE I WAS TOLD";
         default:
