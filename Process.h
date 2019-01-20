@@ -42,6 +42,7 @@ private:
     int convertAddress(std::string arg);
     uint8_t getOddAddress(int addr);
     uint8_t getEvenAddress(int addr);
+    void cmpHelp(int addr1, int addr2, int count);
     
     std::string fileName;
     std::vector<uint8_t> memory;
