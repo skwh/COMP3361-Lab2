@@ -40,6 +40,8 @@ private:
     
     std::string handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
     int convertAddress(std::string arg);
+    uint8_t getOddAddress(int addr);
+    uint8_t getEvenAddress(int addr);
     
     std::string fileName;
     std::vector<uint8_t> memory;

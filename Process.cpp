@@ -86,6 +86,24 @@ uint32_t Process::convertAddress(std::string arg) {
     return ((std::dec(std::stoi(arg)))/2);
 }
 
+uint8_t Process::getEvenAddress(int addr)
+{
+    uint8_t byte = this->memory[addr];
+    uint8_t result;
+    
+    result = (byte & 240);
+    return result;
+}
+
+uint8_t Process::getOddAddress(int addr)
+{
+    uint8_t byte = this->memory[addr];
+    uint8_t result;
+    
+    result = (byte & 15);
+    return result;
+}
+
 std::string Process::handleCommand(Process::Command cmd, 
                                     uint32_t address, 
                                     std::vector<std::string> & arguments) {
@@ -103,9 +121,45 @@ std::string Process::handleCommand(Process::Command cmd,
             arguments.erase(0);
             uint32_t addr2 = convertAddress(arguments.front());
             arguments.erase(0);
+             int count = arguments.front();
+            arguments.erase(0);
             
-            //INCOMPLETE LOOKS LIKE BIT MANIPULATION, AND FUCK THAT FOR RIGHT NOW
-            
+            int addr1CountVal = 0;
+            int addr2CountVal = 0;
+            for (int i = addr1, j = addr2;
+                    i <= (addr1 + count), j <= (addr2 + count);    // Might need to do count-1 here, testing will tell
+                    i++, j++)
+            {
+                uint8_t addr1CurrVal = 0;
+                uint8_t addr2CurrVal = 0;
+                if ((i%2) == 0)
+                {
+                    addr1CurrVal = getEvenAddress(i);
+                    addr1CountVal += addr1CurrVal;
+                }
+                else
+                {
+                    addr1CurrVal = getOddAddress(i);
+                    addr1CountVal += addr1CurrVal;
+                }
+                
+                if ((i%2) == 0)
+                {
+                    addr2CurrVal = getEvenAddress(j);
+                    addr2CountVal += addr2CurrVal;
+                }
+                else
+                {
+                    addr2CurrVal = getOddAddress(j);
+                    addr2CountVal += addr2CurrVal;
+                }
+                
+                if ((addr1CurrVal & addr2CurrVal) != addr1CurrVal)
+                {
+                    std::cerr >> "cmp error, addr1 = " << std::hex << i << ", value = " << addr1CurrVal 
+                            << ", addr2 = " << j << ", value = " << addr2CurrVal;
+                }
+            }
             break;
         case Process::Command::PRINT:
             return "HEY GUYS I AM PRINTING SOMETHING JUST LIKE I WAS TOLD";
