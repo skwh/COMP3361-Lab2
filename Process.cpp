@@ -135,9 +135,39 @@ void Process::cmpHelp(int addr1, int addr2, int count) {
             }
 }
 
+void Process::setHelp(int addr, int val) {
+    uint8_t holder = this->memory[addr];
+    if ((addr % 2) == 0) {
+        holder = (holder & 15);
+        holder = (val | holder);
+    }
+    else {
+        holder = (holder & 240);
+        holder = (val | holder);
+    }
+    this->memory[addr] = holder;
+}
+
+std::vector<uint8_t> Process::dupHelp(uint8_t srcAddr, int count) {
+    std::vector<uint8_t> vals;
+    
+    for (int i = srcAddr; i <= (srcAddr + count); i++)
+    {
+        if ((i % 2) == 0)
+        {
+            vals.push_back(getEvenAddress(i));
+        }
+        else
+        {
+            vals.push_back(getOddAddress(i));
+        }
+    }
+    return vals;
+}
+
 std::string Process::handleCommand(Process::Command cmd, 
                                     uint32_t address, 
-                                    std::vector<std::string> & arguments) {
+                                    std::vector<std::string> & arguments) { // Might need to convert arguments from strings to dec
     switch (cmd) {
         case Process::Command::MEMSIZE:
             uint32_t convertedSize = convertAddress(address);
@@ -156,7 +186,44 @@ std::string Process::handleCommand(Process::Command cmd,
             cmpHelp(addr1, addr2, count);
             break;
         case Process::Command::SET:
+            uint32_t addr = convertAddress(address);
             
+            int count = 0;
+            while (arguments.front() != NULL) {
+                uint8_t val = arguments.front();
+                arguments.erase(0);
+                
+                setHelp((addr + count), val);
+                count++;
+            }
+            break;
+        case Process::Command::FILL:
+            uint32_t addr = convertAddress(address);
+            uint8_t val = arguments.front();
+            arguments.erase(0);
+            uint32_t count = arguments.front();
+            arguments.erase(0);
+            
+            for (int i = addr; i <= addr + count; i++)
+            {
+                setHelp(i, val);
+            }
+            break;
+        case Process::Command::DUP:
+            uint32_t srcAddr = convertAddress(address);
+            uint32_t destAddr = convertAddress(arguments.front());
+            arguments.erase(0);
+            uint32_t count = arguments.front();
+            arguments.erase(0);
+            
+            std::vector<uint8_t> vals = dupHelp(srcAddr, count);
+            
+            for (int i = destAddr; i <= (destAddr + count); i++)
+            {
+                setHelp(i, vals.front());
+                vals.erase(0);
+            }
+            break;
         case Process::Command::PRINT:
             return "HEY GUYS I AM PRINTING SOMETHING JUST LIKE I WAS TOLD";
         default:

@@ -43,6 +43,8 @@ private:
     uint8_t getOddAddress(int addr);
     uint8_t getEvenAddress(int addr);
     void cmpHelp(int addr1, int addr2, int count);
+    void setHelp(int addr, int val);
+    std::vector<uint8_t> dupHelp(uint32_t srcAddr, int count);
     
     std::string fileName;
     std::vector<uint8_t> memory;
