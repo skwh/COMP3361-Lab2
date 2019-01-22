@@ -55,10 +55,8 @@ void Process::Exec() {
             this->currentCommand = Process::Command::FILL;
         } else if (command == "dup") {
             this->currentCommand = Process::Command::DUP;
-        } else if (command == "print") {
-            this->currentCommand = Process::Command::PRINT;
         } else {
-            this->currentCommand = Process::Command::COMMENT;
+            this->currentCommand = Process::Command::PRINT;
         }
         
         std::vector<std::string> arguments;
@@ -154,6 +152,17 @@ std::vector<uint8_t> Process::dupHelp(uint8_t srcAddr, int count) {
     return vals;
 }
 
+std::string Process::printHelp(uint32_t addr) {
+    if ((addr % 2) == 0)
+    {
+        return std::to_string(getEvenAddress(addr));
+    }
+    else
+    {
+        return std::to_string(getOddAddress(addr));
+    }
+}
+
 std::string Process::handleCommand(Process::Command cmd, 
                                     uint32_t address, 
                                     std::vector<std::string> & arguments) { 
@@ -214,7 +223,24 @@ std::string Process::handleCommand(Process::Command cmd,
             }
             break;
         case Process::Command::PRINT:
-            return "HEY GUYS I AM PRINTING SOMETHING JUST LIKE I WAS TOLD";
+            uint32_t addr = address;
+            uint32_t count = arguments.front();
+            arguments.erase(0);
+            
+            for (int i = addr; i <= addr + count; i += 16) {
+                std::string line = "";
+                line << std::setfill('0') << std::setw(7) << std::hex << i << ": ";
+                
+                for (int j = i; j <= ((i + 15) || (addr + count)); j++) {
+                    line << std::setfill('0') << std::setw(2) << std::hex << printHelp(j) << " ";
+                }
+                std::cout line;
+            }
+            break;
+        /* case Process::Command::COMMENT:
+            
+            break;
+        */
         default:
             return "";
     }

@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 
 class Process {
 public:
@@ -35,7 +36,7 @@ public:
 private:
     
     enum Command {
-        MEMSIZE, CMP, SET, FILL, DUP, PRINT, COMMENT
+        MEMSIZE, CMP, SET, FILL, DUP, PRINT, //COMMENT
     };
     
     std::string handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
@@ -45,6 +46,7 @@ private:
     void cmpHelp(uint32_t addr1, uint32_t addr2, int count);
     void setHelp(uint32_t addr, int val);
     std::vector<uint8_t> dupHelp(uint32_t srcAddr, int count);
+    std::string printHelp(uint32_t addr);
     
     std::string fileName;
     std::vector<uint8_t> memory;
