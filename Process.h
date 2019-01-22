@@ -19,7 +19,6 @@
 #include <cstdint>
 #include <fstream>
 #include <sstream>
-#include <iomanip>
 
 class Process {
 public:
@@ -36,17 +35,17 @@ public:
 private:
     
     enum Command {
-        MEMSIZE, CMP, SET, FILL, DUP, PRINT, //COMMENT
+        MEMSIZE, CMP, SET, FILL, DUP, PRINT, UNKNOWN // include catch-all
     };
     
-    std::string handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
-    uint32_t convertAddress(std::string arg);
-    uint8_t getOddAddress(uint32_t addr);
-    uint8_t getEvenAddress(uint32_t addr);
-    void cmpHelp(uint32_t addr1, uint32_t addr2, int count);
+    void handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
+    uint32_t convertAddress(std::string arg) const;
+    uint8_t getOddAddress(uint32_t addr) const;
+    uint8_t getEvenAddress(uint32_t addr) const;
+    void cmpHelp(uint32_t addr1, uint32_t addr2, int count) const;
     void setHelp(uint32_t addr, int val);
-    std::vector<uint8_t> dupHelp(uint32_t srcAddr, int count);
-    std::string printHelp(uint32_t addr);
+    std::vector<uint8_t> dupHelp(uint32_t srcAddr, int count) const;
+    std::string printHelp(uint32_t addr) const;
     
     std::string fileName;
     std::vector<uint8_t> memory;

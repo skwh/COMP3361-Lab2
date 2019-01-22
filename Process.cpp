@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <iomanip>
 
 Process::Process(std::string fileName) {
     this->fileName = fileName;
@@ -39,7 +40,16 @@ void Process::Exec() {
         
         std::string inputAddress;
         this->currentLineStream >> inputAddress;
-        uint32_t address = this->convertAddress(inputAddress);
+        uint32_t address = 0;
+        try {
+            address = this->convertAddress(inputAddress);
+        } catch (const std::invalid_argument & e) {
+            // the address couldn't be converted, probably because the input
+            // is a star denoting a comment, so skip command processing
+            // and just print out the line
+            std::cout << this->lineCount << ":" << line << std::endl;
+            continue;
+        }
         this->currentAddress = address;
         
         std::string command;
@@ -55,8 +65,12 @@ void Process::Exec() {
             this->currentCommand = Process::Command::FILL;
         } else if (command == "dup") {
             this->currentCommand = Process::Command::DUP;
-        } else {
+        } else if (command == "print") {
             this->currentCommand = Process::Command::PRINT;
+        } else {
+            this->currentCommand = Process::Command::UNKNOWN;
+            std::cerr << "Couldn't process command in line: " << line << std::endl;
+            continue;
         }
         
         std::vector<std::string> arguments;
@@ -67,13 +81,7 @@ void Process::Exec() {
         
         std::cout << this->lineCount << ":" << line << std::endl;
         
-        std::string result = this->handleCommand(this->currentCommand,
-                                                 this->currentAddress,
-                                                            arguments);
-        
-        if (result != "") {
-            std::cout << result << std::endl;
-        }
+        this->handleCommand(this->currentCommand, this->currentAddress, arguments);
     }
     
     if (this->fileStream.bad()) {
@@ -81,21 +89,21 @@ void Process::Exec() {
     }
 }
 
-uint32_t Process::convertAddress(std::string arg) {
-    return ((std::dec(std::stoi(arg)))/2);
+uint32_t Process::convertAddress(std::string arg) const {
+    return std::stoul(arg, nullptr, 16);
 }
 
-uint8_t Process::getEvenAddress(uint32_t addr) {
+uint8_t Process::getEvenAddress(uint32_t addr) const {
     uint8_t byte = this->memory[addr];
     return (byte & 240);
 }
 
-uint8_t Process::getOddAddress(uint32_t addr) {
+uint8_t Process::getOddAddress(uint32_t addr) const {
     uint8_t byte = this->memory[addr];
     return (byte & 15);
 }
 
-void Process::cmpHelp(uint32_t addr1, uint32_t addr2, int count) {
+void Process::cmpHelp(uint32_t addr1, uint32_t addr2, int count) const {
     int addr1CountVal = 0;
     int addr2CountVal = 0;
     for (int i = addr1, j = addr2;
@@ -104,24 +112,24 @@ void Process::cmpHelp(uint32_t addr1, uint32_t addr2, int count) {
         uint8_t addr1CurrVal = 0;
         uint8_t addr2CurrVal = 0;
         if ((i%2) == 0) {
-            addr1CurrVal = getEvenAddress(i);
+            addr1CurrVal = this->getEvenAddress(i);
             addr1CountVal += addr1CurrVal;
         } else {
-            addr1CurrVal = getOddAddress(i);
+            addr1CurrVal = this->getOddAddress(i);
             addr1CountVal += addr1CurrVal;
         }
         if ((i%2) == 0) {
-            addr2CurrVal = getEvenAddress(j);
+            addr2CurrVal = this->getEvenAddress(j);
             addr2CountVal += addr2CurrVal;
         } else {
-            addr2CurrVal = getOddAddress(j);
+            addr2CurrVal = this->getOddAddress(j);
             addr2CountVal += addr2CurrVal;
         }
 
         if ((addr1CurrVal & addr2CurrVal) != addr1CurrVal) {
-            std::cerr >> "cmp error, addr1 = " >> std::hex >> i >> ", value = " 
-                    >> addr1CurrVal >> ", addr2 = " >> j >> ", value = " 
-                    >> addr2CurrVal >> std::endl;
+            std::cerr << "cmp error, addr1 = " << std::hex << i << ", value = " 
+                    << addr1CurrVal << ", addr2 = " << j << ", value = " 
+                    << addr2CurrVal << std::endl;
         }
     }
 }
@@ -131,117 +139,99 @@ void Process::setHelp(uint32_t addr, int val) {
     if ((addr % 2) == 0) {
         holder = (holder & 15);
         holder = (val | holder);
-    }
-    else {
+    } else {
         holder = (holder & 240);
         holder = (val | holder);
     }
     this->memory[addr] = holder;
 }
 
-std::vector<uint8_t> Process::dupHelp(uint8_t srcAddr, int count) {
+std::vector<uint8_t> Process::dupHelp(uint32_t srcAddr, int count) const {
     std::vector<uint8_t> vals;
     
     for (int i = srcAddr; i <= (srcAddr + count); i++) {
         if ((i % 2) == 0) {
-            vals.push_back(getEvenAddress(i));
+            vals.push_back(this->getEvenAddress(i));
         } else {
-            vals.push_back(getOddAddress(i));
+            vals.push_back(this->getOddAddress(i));
         }
     }
     return vals;
 }
 
-std::string Process::printHelp(uint32_t addr) {
-    if ((addr % 2) == 0)
-    {
-        return std::to_string(getEvenAddress(addr));
-    }
-    else
-    {
-        return std::to_string(getOddAddress(addr));
+std::string Process::printHelp(uint32_t addr) const {
+    if ((addr % 2) == 0) {
+        return std::to_string(this->getEvenAddress(addr));
+    } else {
+        return std::to_string(this->getOddAddress(addr));
     }
 }
 
-std::string Process::handleCommand(Process::Command cmd, 
+void Process::handleCommand(Process::Command cmd, 
                                     uint32_t address, 
-                                    std::vector<std::string> & arguments) { 
-    // the address argument has already been converted, 
-    // it doesn't need to be converted again in this method
+                                    std::vector<std::string> & arguments) {
     switch (cmd) {
-        case Process::Command::MEMSIZE:
-            uint32_t convertedSize = address;
-            if (convertedSize > 4000000) {
-                convertedSize = 4000000;
+        case Process::Command::MEMSIZE: {
+            if (address > 4000000) {
+                address = 4000000;
             }
-            this->memory = std::vector<uint8_t>(convertedSize-1);
-            break;
-        case Process::Command::CMP:
-            uint32_t addr1 = address;
-            uint32_t addr2 = convertAddress(arguments.front());
-            arguments.erase(0);
-            int count = arguments.front();
-            arguments.erase(0);
+            this->memory = std::vector<uint8_t>(address-1);
+            break; 
+        }
+        case Process::Command::CMP: {
+            uint32_t addr2 = this->convertAddress(arguments.at(0));
+            int count = this->convertAddress(arguments.at(1));
             
-            cmpHelp(addr1, addr2, count);
-            break;
-        case Process::Command::SET:
-            uint32_t addr = address;
-            
+            this->cmpHelp(address, addr2, count);
+            break; 
+        }
+        case Process::Command::SET: {
             int count = 0;
-            while (arguments.front() != NULL) {
-                uint8_t val = arguments.front();
-                arguments.erase(0);
-                
-                setHelp((addr + count), val);
+            while (!arguments.empty()) {
+                uint8_t val = this->convertAddress(arguments.at(0));
+                arguments.erase(arguments.begin()); //.erase takes an iterator,
+                                                    // not an index integer
+                this->setHelp((address + count), val);
                 count++;
             }
-            break;
-        case Process::Command::FILL:
-            uint32_t addr = address;
-            uint8_t val = arguments.front();
-            arguments.erase(0);
-            uint32_t count = arguments.front();
-            arguments.erase(0);
+            break; 
+        }
+        case Process::Command::FILL: {
+            uint8_t val = this->convertAddress(arguments.at(0));
+            uint32_t count = this->convertAddress(arguments.at(1));
             
-            for (int i = addr; i <= addr + count; i++) {
-                setHelp(i, val);
+            for (int i = address; i <= address + count; i++) {
+                this->setHelp(i, val);
             }
-            break;
-        case Process::Command::DUP:
-            uint32_t srcAddr = address;
-            uint32_t destAddr = convertAddress(arguments.front());
-            arguments.erase(0);
-            uint32_t count = arguments.front();
-            arguments.erase(0);
+            break; 
+        }
+        case Process::Command::DUP: {
+            uint32_t destAddr = this->convertAddress(arguments.at(0));
+            uint32_t count = this->convertAddress(arguments.at(1));
             
-            std::vector<uint8_t> vals = dupHelp(srcAddr, count);
+            std::vector<uint8_t> vals = this->dupHelp(address, count);
             
             for (int i = destAddr; i <= (destAddr + count); i++) {
-                setHelp(i, vals.front());
-                vals.erase(0);
+                this->setHelp(i, vals.front());
+                vals.erase(vals.begin());
             }
-            break;
-        case Process::Command::PRINT:
-            uint32_t addr = address;
-            uint32_t count = arguments.front();
-            arguments.erase(0);
+            break; 
+        }
+        case Process::Command::PRINT: {
+            uint32_t count = this->convertAddress(arguments.at(0));
             
-            for (int i = addr; i <= addr + count; i += 16) {
-                std::string line = "";
+            for (int i = address; i <= address + count; i += 16) {
+                std::ostringstream line;
                 line << std::setfill('0') << std::setw(7) << std::hex << i << ": ";
                 
-                for (int j = i; j <= ((i + 15) || (addr + count)); j++) {
-                    line << std::setfill('0') << std::setw(2) << std::hex << printHelp(j) << " ";
+                for (int j = i; j <= ((i + 15) || (address + count)); j++) {
+                    line << std::setfill('0') << std::setw(2) << std::hex << this->printHelp(j) << " ";
                 }
-                std::cout line;
+                std::cout << line.str() << std::endl;
             }
-            break;
-        /* case Process::Command::COMMENT:
-            
-            break;
-        */
+            break; 
+        }
         default:
-            return "";
+            return;
     }
 }
