@@ -42,7 +42,7 @@ void Process::Exec() {
         this->currentLineStream >> inputAddress;
         uint32_t address = 0;
         try {
-            address = this->convertAddress(inputAddress);
+            address = this->stringToAddress(inputAddress);
         } catch (const std::invalid_argument & e) {
             // the address couldn't be converted, probably because the input
             // is a star denoting a comment, so skip command processing
@@ -79,7 +79,7 @@ void Process::Exec() {
             arguments.push_back(argument);
         }
         
-        std::cout << this->lineCount << ":" << line << std::endl;
+        std::cout << std::dec << this->lineCount << ":" << line << std::endl;
         
         this->handleCommand(this->currentCommand, this->currentAddress, arguments);
     }
@@ -89,149 +89,128 @@ void Process::Exec() {
     }
 }
 
-uint32_t Process::convertAddress(std::string arg) const {
-    return std::stoul(arg, nullptr, 16);
+address Process::stringToAddress(std::string val) const {
+    return std::stoul(val, nullptr, 16);
 }
 
-uint8_t Process::getEvenAddress(uint32_t addr) const {
-    uint8_t byte = this->memory[addr];
-    return (byte & 240);
-}
-
-uint8_t Process::getOddAddress(uint32_t addr) const {
-    uint8_t byte = this->memory[addr];
-    return (byte & 15);
-}
-
-void Process::cmpHelp(uint32_t addr1, uint32_t addr2, int count) const {
-    int addr1CountVal = 0;
-    int addr2CountVal = 0;
-    for (int i = addr1, j = addr2;
-            i <= (addr1 + count), j <= (addr2 + count);    // Might need to do count-1 here, testing will tell
-            i++, j++) {
-        uint8_t addr1CurrVal = 0;
-        uint8_t addr2CurrVal = 0;
-        if ((i%2) == 0) {
-            addr1CurrVal = this->getEvenAddress(i);
-            addr1CountVal += addr1CurrVal;
-        } else {
-            addr1CurrVal = this->getOddAddress(i);
-            addr1CountVal += addr1CurrVal;
-        }
-        if ((i%2) == 0) {
-            addr2CurrVal = this->getEvenAddress(j);
-            addr2CountVal += addr2CurrVal;
-        } else {
-            addr2CurrVal = this->getOddAddress(j);
-            addr2CountVal += addr2CurrVal;
-        }
-
-        if ((addr1CurrVal & addr2CurrVal) != addr1CurrVal) {
-            std::cerr << "cmp error, addr1 = " << std::hex << i << ", value = " 
-                    << addr1CurrVal << ", addr2 = " << j << ", value = " 
-                    << addr2CurrVal << std::endl;
-        }
-    }
-}
-
-void Process::setHelp(uint32_t addr, int val) {
-    uint8_t holder = this->memory[addr];
-    if ((addr % 2) == 0) {
-        holder = (holder & 15);
-        holder = (val | holder);
-    } else {
-        holder = (holder & 240);
-        holder = (val | holder);
-    }
-    this->memory[addr] = holder;
-}
-
-std::vector<uint8_t> Process::dupHelp(uint32_t srcAddr, int count) const {
-    std::vector<uint8_t> vals;
-    
-    for (int i = srcAddr; i <= (srcAddr + count); i++) {
-        if ((i % 2) == 0) {
-            vals.push_back(this->getEvenAddress(i));
-        } else {
-            vals.push_back(this->getOddAddress(i));
-        }
-    }
-    return vals;
-}
-
-std::string Process::printHelp(uint32_t addr) const {
-    if ((addr % 2) == 0) {
-        return std::to_string(this->getEvenAddress(addr));
-    } else {
-        return std::to_string(this->getOddAddress(addr));
-    }
+byte Process::stringToByte(std::string val) const {
+    return std::stoul(val, nullptr, 16);
 }
 
 void Process::handleCommand(Process::Command cmd, 
-                                    uint32_t address, 
+                                    address addr, 
                                     std::vector<std::string> & arguments) {
     switch (cmd) {
         case Process::Command::MEMSIZE: {
-            if (address > 4000000) {
-                address = 4000000;
-            }
-            this->memory = std::vector<uint8_t>(address-1);
+            this->memsize(addr);
             break; 
         }
         case Process::Command::CMP: {
-            uint32_t addr2 = this->convertAddress(arguments.at(0));
-            int count = this->convertAddress(arguments.at(1));
+            if (arguments.size() != 2) {
+                std::cerr << "cmp did not have the correct number of args" << std::endl;
+                return;
+            }
+            address addr2 = this->stringToAddress(arguments.at(0));
+            int count = this->stringToAddress(arguments.at(1));
             
-            this->cmpHelp(address, addr2, count);
+            this->cmp(addr, addr2, count);
             break; 
         }
         case Process::Command::SET: {
-            int count = 0;
-            while (!arguments.empty()) {
-                uint8_t val = this->convertAddress(arguments.at(0));
-                arguments.erase(arguments.begin()); //.erase takes an iterator,
-                                                    // not an index integer
-                this->setHelp((address + count), val);
-                count++;
+            std::vector<byte> byteValues = std::vector<byte>(arguments.size());
+            for (int i = 0; i < arguments.size(); i++) {
+                byteValues[i] = this->stringToByte(arguments.at(i));
             }
+            this->set(addr, byteValues);
             break; 
         }
         case Process::Command::FILL: {
-            uint8_t val = this->convertAddress(arguments.at(0));
-            uint32_t count = this->convertAddress(arguments.at(1));
-            
-            for (int i = address; i <= address + count; i++) {
-                this->setHelp(i, val);
+            if (arguments.size() != 2) {
+                std::cerr << "fill did not have the correct number of args" << std::endl;
+                return;
             }
+            byte val = this->stringToByte(arguments.at(0));
+            int count = this->stringToAddress(arguments.at(1));
+            this->fill(addr, val, count);
             break; 
         }
         case Process::Command::DUP: {
-            uint32_t destAddr = this->convertAddress(arguments.at(0));
-            uint32_t count = this->convertAddress(arguments.at(1));
-            
-            std::vector<uint8_t> vals = this->dupHelp(address, count);
-            
-            for (int i = destAddr; i <= (destAddr + count); i++) {
-                this->setHelp(i, vals.front());
-                vals.erase(vals.begin());
+            if (arguments.size() != 2) {
+                std::cerr << "dup did not have the correct number of args" << std::endl;
+                return;
             }
+            address addr2 = this->stringToAddress(arguments.at(0));
+            int count = this->stringToAddress(arguments.at(1));
+            this->dup(addr, addr2, count);
             break; 
         }
         case Process::Command::PRINT: {
-            uint32_t count = this->convertAddress(arguments.at(0));
-            
-            for (int i = address; i <= address + count; i += 16) {
-                std::ostringstream line;
-                line << std::setfill('0') << std::setw(7) << std::hex << i << ": ";
-                
-                for (int j = i; j <= ((i + 15) || (address + count)); j++) {
-                    line << std::setfill('0') << std::setw(2) << std::hex << this->printHelp(j) << " ";
-                }
-                std::cout << line.str() << std::endl;
+            if (arguments.size() != 1) {
+                std::cerr << "print did not have the correct number of args" << std::endl;
             }
+            int count = this->stringToAddress(arguments.at(0));
+            this->print(addr, count);
             break; 
         }
         default:
             return;
     }
+}
+
+void Process::memsize(address memsize) {
+    if (memsize > 4000000) {
+        memsize = 4000000;
+    }
+    this->memory = std::vector<byte>(memsize);
+}
+
+void Process::cmp(address addr1, address addr2, int count) const {
+    for (int i = 0; i < count; i++) {
+        if (this->memory[addr1+i] != this->memory[addr2+i]) {
+            std::cerr << "cmp error, addr1 = " << std::setfill('0') << std::setw(7) << std::hex << addr1+i 
+                    << ", value = " << std::setfill('0') << std::setw(2) << static_cast<int>(this->memory[addr1+i]) 
+                    << ", addr2 = " << std::setfill('0') << std::setw(7) << addr2+i 
+                    << ", value = " << std::setfill('0') << std::setw(2) << static_cast<int>(this->memory[addr2+i]) 
+                    << std::endl;
+        }
+    }
+}
+
+void Process::set(address addr, std::vector<byte> vals) {
+    for (std::vector<byte>::iterator it = vals.begin() ; it != vals.end(); ++it) {
+        this->memory[addr] = *it;
+        addr++;
+    }
+}
+
+void Process::fill(address addr, byte val, int count) {
+    for (int i = 0; i < count; i++ ) {
+        this->memory[addr+i] = val;
+    }
+}
+
+void Process::dup(address srcAddr, address destAddr, int count) {
+    for (int i = 0; i < count; i++ ) {
+        this->memory[destAddr+i] = this->memory[srcAddr+i];
+    }
+}
+
+void Process::print(address addr, int count) const {
+    int byteCounter = 0;
+    for (int i = 0; i < count; i++) {
+        if (i % 16 == 0) {
+            std::cout << std::setfill('0') << std::setw(7) << std::hex << addr+i << ": "; 
+        }
+        std::cout << std::setfill('0') << std::setw(2) << std::hex 
+                << static_cast<int>(this->memory[addr+i]) << " ";
+        byteCounter++;
+        if (byteCounter == 16) {
+            std::cout << std::dec << std::endl;
+            byteCounter = 0;
+        }
+    }
+    if (byteCounter != 0) {
+        std::cout << std::dec << std::endl;
+    }
+    
 }

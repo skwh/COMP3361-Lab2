@@ -20,6 +20,9 @@
 #include <fstream>
 #include <sstream>
 
+using address = uint32_t;
+using byte = uint8_t;
+
 class Process {
 public:
     Process(std::string fileName);
@@ -38,24 +41,27 @@ private:
         MEMSIZE, CMP, SET, FILL, DUP, PRINT, UNKNOWN // include catch-all
     };
     
-    void handleCommand(Command cmd, uint32_t address, std::vector<std::string> & args);
-    uint32_t convertAddress(std::string arg) const;
-    uint8_t getOddAddress(uint32_t addr) const;
-    uint8_t getEvenAddress(uint32_t addr) const;
-    void cmpHelp(uint32_t addr1, uint32_t addr2, int count) const;
-    void setHelp(uint32_t addr, int val);
-    std::vector<uint8_t> dupHelp(uint32_t srcAddr, int count) const;
-    std::string printHelp(uint32_t addr) const;
+    void handleCommand(Command cmd, address addr, std::vector<std::string> & args);
+    address stringToAddress(std::string val) const;
+    byte stringToByte(std::string val) const;
+    
+    void memsize(address memsize);
+    void cmp(address addr1, address addr2, int count) const;
+    void set(address addr, std::vector<byte> vals);
+    void fill(address addr, byte val, int count);
+    void dup(address srcAddr, address destAddr, int count);
+    void print(address addr, int count) const;
     
     std::string fileName;
-    std::vector<uint8_t> memory;
     std::ifstream fileStream;
     std::istringstream currentLineStream;
+    
+    std::vector<byte> memory;
     bool fileOpen;
     int lineCount;
     
     Command currentCommand;
-    uint32_t currentAddress;
+    address currentAddress;
     
 
 };

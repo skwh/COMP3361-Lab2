@@ -13,8 +13,6 @@
         <gdb_interceptlist>
           <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
         </gdb_interceptlist>
-        <gdb_signals>
-        </gdb_signals>
         <gdb_options>
           <DebugOptions>
           </DebugOptions>
@@ -32,8 +30,9 @@
           <runcommandpicklistitem>"${OUTPUT_PATH}" trace1.txt</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" ../data/trace1.txt</runcommandpicklistitem>
           <runcommandpicklistitem>"${OUTPUT_PATH}" data/trace1.txt</runcommandpicklistitem>
+          <runcommandpicklistitem>"${OUTPUT_PATH}" data/trace2.txt</runcommandpicklistitem>
         </runcommandpicklist>
-        <runcommand>"${OUTPUT_PATH}" data/trace1.txt</runcommand>
+        <runcommand>"${OUTPUT_PATH}" data/trace2.txt</runcommand>
         <rundir></rundir>
         <buildfirst>true</buildfirst>
         <terminal-type>0</terminal-type>
